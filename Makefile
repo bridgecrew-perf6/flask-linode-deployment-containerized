@@ -1,23 +1,22 @@
+all: update install install-dev run initialize-db seed-db
+
 update:
 	@pip install --upgrade pip
 
-install:
-	@pip install -r requirements.txt
+install: ./services/web/requirements.txt
+	@pip install -r ./services/web/requirements.txt
 
 install-dev: requirements-dev.txt
 	@pip install -r requirements-dev.txt
 
-run:
-	@python manage.py run
-
-test:
-	@python -m pytest
-
 build:
-	@docker build -t ${imagename}:latest .
+	@docker-compose build
 
-run-docker:
-	@sudo docker run --env FLASK_ENV=development -p 5000:5000 ${imagename}:latest
+run:
+	@docker-compose up -d --build
+
+stop:
+	@docker-compose down -v
 
 pre-commit:
 	@pre-commit install
@@ -29,18 +28,12 @@ bump-tag:
 	@cz bump --check-consistency --changelog
 
 initialize-db:
-	@flask db init
-	@flask db migrate -m "Initial Migration."
-	@flask db upgrade
-
-upgrade-db:
-	@flask db upgrade
+	@docker-compose exec web python manage.py create_db
 
 seed-db:
-	@python manage.py seed_db
+	@docker-compose exec web python manage.py seed_db
 
 test-local:
 	@curl localhost:5000/
+	@sleep 2
 	@curl localhost:5000/users
-
-all: update install install-dev pre-commit initial-tag initialize-db test seed-db run
